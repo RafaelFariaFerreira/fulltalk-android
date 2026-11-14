@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="320" viewBox="0 0 1280 320" role="img" aria-label="Your voice never leaves your phone: the model runs on its CPU, no cloud involved">
+  <!-- README "100% local" banner. Render with scripts/make-illustrations.py (light + dark). -->
+  <style>
+    svg {
+      --card: #F6F4FF; --card-stroke: #E3DEFA; --ink: #1B1A2E; --muted: #66647D;
+      --accent: #5B3FE4; --ring: #E6E1FC; --screen: #fff; --line: #C9C1F3; --no: #E5484D;
+    }
+    svg.dark {
+      --card: #16142A; --card-stroke: #2B2750; --ink: #F1EFFB; --muted: #A7A3C4;
+      --accent: #7B65F6; --ring: #2A2460; --screen: #0F0D20; --line: #4B4486; --no: #FF6369;
+    }
+    text { font-family: Inter, system-ui, sans-serif; }
+    .b { font-weight: 600; }
+    .label { font-size: 13.5px; fill: var(--muted); text-anchor: middle; }
+  </style>
+
+  <rect x="1" y="1" width="1278" height="318" rx="28" fill="var(--card)" stroke="var(--card-stroke)" stroke-width="1.5"/>
+
+  <text class="b" x="56" y="86" font-size="13" letter-spacing="1.6" fill="var(--accent)">100% ON-DEVICE · OFFLINE</text>
+  <text class="b" font-size="35" letter-spacing="-.9" fill="var(--ink)">
+    <tspan x="56" y="138">Your voice never</tspan>
+    <tspan x="56" y="181">leaves your phone.</tspan>
+  </text>
+  <text font-size="16" fill="var(--muted)">
+    <tspan x="56" y="226">No account, no API key, no network after the one-time</tspan>
+    <tspan x="56" y="251">model download. Parakeet runs on the phone's CPU.</tspan>
+  </text>
+
+  <!-- microphone -->
+  <circle cx="700" cy="150" r="40" fill="var(--ring)"/>
+  <g transform="translate(700 148)" fill="none" stroke="var(--accent)" stroke-width="3.4" stroke-linecap="round">
+    <rect x="-7.5" y="-21" width="15" height="29" rx="7.5"/>
+    <path d="M-15.5 0a15.5 15.5 0 0 0 31 0"/>
+    <path d="M0 15.5v8.5"/>
+  </g>
+  <text class="label" x="700" y="220">your voice</text>
+  <path d="M756 150h46M790 139l12 11-12 11" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- phone -->
+  <rect x="846" y="38" width="136" height="224" rx="24" fill="var(--screen)" stroke="var(--ink)" stroke-width="3"/>
+  <rect x="894" y="50" width="40" height="5" rx="2.5" fill="var(--ink)" opacity=".5"/>
+  <rect x="883" y="82" width="62" height="62" rx="15" fill="var(--accent)"/>
+  <g fill="#fff">
+    <rect x="895"   y="105" width="5" height="16" rx="2.5"/>
+    <rect x="903.5" y="98"  width="5" height="30" rx="2.5"/>
+    <rect x="912"   y="91"  width="5" height="44" rx="2.5"/>
+    <rect x="920.5" y="98"  width="5" height="30" rx="2.5"/>
+    <rect x="929"   y="105" width="5" height="16" rx="2.5"/>
+  </g>
+  <path d="M914 156v16M907 165l7 8 7-8" fill="none" stroke="var(--line)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <g fill="var(--ink)">
+    <rect x="872" y="190" width="84" height="8" rx="4" opacity=".85"/>
+    <rect x="872" y="208" width="64" height="8" rx="4" opacity=".85"/>
+    <rect x="872" y="226" width="44" height="8" rx="4" opacity=".85"/>
+  </g>
+  <rect x="921" y="221" width="3.5" height="18" rx="1.5" fill="var(--accent)"/>
+  <text class="label" x="914" y="292">Parakeet TDT 0.6B v3 · ONNX Runtime · CPU</text>
+
+  <!-- no cloud -->
+  <path d="M1000 140h44" fill="none" stroke="var(--line)" stroke-width="3" stroke-linecap="round" stroke-dasharray="2 9"/>
+  <path d="M1076 172h66a22 22 0 0 0 2-44 32 32 0 0 0-60-8 26 26 0 0 0-10 52z" fill="none" stroke="var(--muted)" stroke-width="3" stroke-linejoin="round" opacity=".7"/>
+  <path d="M1062 186l92-86" stroke="var(--card)" stroke-width="10" stroke-linecap="round"/>
+  <path d="M1062 186l92-86" stroke="var(--no)" stroke-width="4" stroke-linecap="round"/>
+  <text class="label" x="1108" y="220">no cloud</text>
+</svg>

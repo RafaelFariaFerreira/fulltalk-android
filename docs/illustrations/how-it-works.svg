@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="384" viewBox="0 0 1280 384" role="img" aria-label="How it works: tap the bubble, speak, and the text is pasted into the field you are typing in">
+  <!-- README "how it works" strip. Render with scripts/make-illustrations.py (light + dark). -->
+  <style>
+    svg {
+      --card: #F6F4FF; --card-stroke: #E3DEFA; --ink: #1B1A2E; --muted: #66647D;
+      --accent: #5B3FE4; --ring1: #E6E1FC; --ring2: #EFECFD; --on-accent: #fff;
+      --idle: #7D7C8E; --ripple: #B5ABEF; --arrow: #B5ABEF;
+      --field: #fff; --field-stroke: #DDD7F6; --field-text: #1B1A2E; --mark: #E6E1FC; --hint: #1B1A2E;
+    }
+    svg.dark {
+      --card: #16142A; --card-stroke: #2B2750; --ink: #F1EFFB; --muted: #A7A3C4;
+      --accent: #7B65F6; --ring1: #2A2460; --ring2: #1F1B45; --on-accent: #fff;
+      --idle: #6E6C85; --ripple: #4B4486; --arrow: #4B4486;
+      --field: #211D3F; --field-stroke: #3A3468; --field-text: #F1EFFB; --mark: #3A3180; --hint: #050410;
+    }
+    text { font-family: Inter, system-ui, sans-serif; }
+    .title { font-size: 23px; font-weight: 600; fill: var(--ink); letter-spacing: -.3px; }
+    .desc { font-size: 15.5px; fill: var(--muted); }
+    .num { font-size: 15px; font-weight: 600; fill: var(--on-accent); text-anchor: middle; }
+    .card { fill: var(--card); stroke: var(--card-stroke); stroke-width: 1.5; }
+    .arrow { fill: none; stroke: var(--arrow); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+    .mic { fill: none; stroke: var(--on-accent); stroke-width: 3.6; stroke-linecap: round; }
+  </style>
+
+  <!-- 1 · tap -->
+  <g>
+    <rect class="card" x="1" y="1" width="378" height="382" rx="28"/>
+    <circle cx="190" cy="124" r="74" fill="none" stroke="var(--ripple)" stroke-width="2" opacity=".45"/>
+    <circle cx="190" cy="124" r="60" fill="none" stroke="var(--ripple)" stroke-width="2.5" opacity=".8"/>
+    <circle cx="190" cy="124" r="46" fill="var(--idle)"/>
+    <g class="mic" transform="translate(190 122)">
+      <rect x="-8.5" y="-23" width="17" height="32" rx="8.5"/>
+      <path d="M-17 0a17 17 0 0 0 34 0"/>
+      <path d="M0 17v9"/>
+    </g>
+    <circle cx="51" cy="262" r="15" fill="var(--accent)"/>
+    <text class="num" x="51" y="267.5">1</text>
+    <text class="title" x="78" y="270">Tap the bubble</text>
+    <text class="desc" x="36" y="310">It floats over whatever app you are in.</text>
+    <text class="desc" x="36" y="334">Or hold it down while you talk.</text>
+  </g>
+  <path class="arrow" d="M398 128h44M430 116l12 12-12 12"/>
+
+  <!-- 2 · speak -->
+  <g transform="translate(450 0)">
+    <rect class="card" x="1" y="1" width="378" height="382" rx="28"/>
+    <circle cx="190" cy="124" r="78" fill="var(--ring2)"/>
+    <circle cx="190" cy="124" r="62" fill="var(--ring1)"/>
+    <circle cx="190" cy="124" r="46" fill="var(--accent)"/>
+    <g class="mic" transform="translate(190 122)">
+      <rect x="-8.5" y="-23" width="17" height="32" rx="8.5"/>
+      <path d="M-17 0a17 17 0 0 0 34 0"/>
+      <path d="M0 17v9"/>
+    </g>
+    <g fill="var(--accent)">
+      <rect x="36" y="110" width="8" height="28" rx="4" opacity=".35"/>
+      <rect x="52" y="96"  width="8" height="56" rx="4" opacity=".55"/>
+      <rect x="68" y="82"  width="8" height="84" rx="4" opacity=".8"/>
+      <rect x="84" y="104" width="8" height="40" rx="4"/>
+      <rect x="288" y="104" width="8" height="40" rx="4"/>
+      <rect x="304" y="82"  width="8" height="84" rx="4" opacity=".8"/>
+      <rect x="320" y="96"  width="8" height="56" rx="4" opacity=".55"/>
+      <rect x="336" y="110" width="8" height="28" rx="4" opacity=".35"/>
+    </g>
+    <circle cx="51" cy="262" r="15" fill="var(--accent)"/>
+    <text class="num" x="51" y="267.5">2</text>
+    <text class="title" x="78" y="270">Speak</text>
+    <text class="desc" x="36" y="310">It turns violet while it listens.</text>
+    <text class="desc" x="36" y="334">The speech is transcribed on the phone.</text>
+  </g>
+  <path class="arrow" d="M848 128h44M880 116l12 12-12 12"/>
+
+  <!-- 3 · pasted -->
+  <g transform="translate(900 0)">
+    <rect class="card" x="1" y="1" width="378" height="382" rx="28"/>
+    <rect x="218" y="56" width="122" height="38" rx="14" fill="var(--hint)"/>
+    <text x="279" y="80" font-size="14.5" fill="#fff" text-anchor="middle">Texto colado</text>
+    <rect x="40" y="118" width="300" height="76" rx="20" fill="var(--field)" stroke="var(--field-stroke)" stroke-width="1.5"/>
+    <rect x="56" y="131" width="218" height="24" rx="5" fill="var(--mark)"/>
+    <rect x="56" y="158" width="138" height="24" rx="5" fill="var(--mark)"/>
+    <text font-size="15.5" fill="var(--field-text)">
+      <tspan x="60" y="148.5">Chego em dez minutos, pode</tspan>
+      <tspan x="60" y="175.5">começar sem mim.</tspan>
+    </text>
+    <rect x="197" y="160" width="2" height="20" fill="var(--accent)"/>
+    <circle cx="51" cy="262" r="15" fill="var(--accent)"/>
+    <text class="num" x="51" y="267.5">3</text>
+    <text class="title" x="78" y="270">It is pasted</text>
+    <text class="desc" x="36" y="310">Right at the cursor of the focused field.</text>
+    <text class="desc" x="36" y="334">With no field in focus, it is just copied.</text>
+  </g>
+</svg>

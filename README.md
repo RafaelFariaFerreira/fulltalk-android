@@ -1,10 +1,8 @@
 <div align="center">
 
-<img src="docs/logo.svg" width="72" alt="fulltalk dev logo">
+<img src="docs/illustrations/cover.webp" alt="fulltalk dev for Android: code is cheap, show me the talk. A floating microphone for your phone." width="100%">
 
-# fulltalk dev for Android
-
-**code is cheap, show me the talk.**
+<br><br>
 
 A floating microphone for your phone. Tap it, speak, and the text lands in whatever
 field you are typing in. The speech is transcribed on the device: nothing leaves it.
@@ -14,7 +12,7 @@ field you are typing in. The speech is transcribed on the device: nothing leaves
 ![Android](https://img.shields.io/badge/android-8.0%2B-3DDC84)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-<img src="docs/hero.png" alt="fulltalk dev on Android: the setup screen, the bubble listening over a messaging app, and the transcription pasted into the message field" width="100%">
+**[Install](#install)** · [How it works](#how-it-works) · [Privacy](#privacy-and-permissions) · [Architecture](#architecture) · [Testing](#testing) · [Status](#status)
 
 </div>
 
@@ -23,6 +21,11 @@ the desktop push-to-talk dictation app. Same idea, same model, same rules, rebui
 touch screen.
 
 ## How it works
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/illustrations/how-it-works-dark.png">
+  <img src="docs/illustrations/how-it-works-light.png" alt="Three steps: tap the bubble, speak, and the text is pasted into the field you are typing in" width="100%">
+</picture>
 
 The app is a single bubble that floats over every other app:
 
@@ -41,7 +44,16 @@ When the transcription is ready it always goes to the clipboard. If a text field
 focus, it is also pasted there, at the cursor. The last five transcriptions stay in the
 app, one tap to copy again.
 
+<div align="center">
+<img src="docs/hero.png" alt="fulltalk dev on Android: the setup screen, the bubble listening over a messaging app, and the transcription pasted into the message field" width="100%">
+</div>
+
 ## Privacy and permissions
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/illustrations/local-dark.png">
+  <img src="docs/illustrations/local-light.png" alt="Your voice never leaves your phone: the microphone feeds a model running on the phone's CPU, with no cloud involved" width="100%">
+</picture>
 
 | Permission | Why |
 |---|---|
@@ -115,8 +127,10 @@ Some decisions worth calling out:
 ## Testing
 
 ```sh
-./gradlew :core:test        # 60 unit tests, plain JVM
-./gradlew :app:lintDebug    # Android lint, warnings are errors
+./gradlew :core:test            # 60 unit tests, plain JVM
+./gradlew :app:lintDebug        # Android lint, warnings are errors
+scripts/make-illustrations.py   # render docs/illustrations/*.svg (needs Chrome and Pillow)
+scripts/make-hero.py            # compose docs/hero.png from the screenshots (needs Pillow)
 ```
 
 Emulators rarely have a usable microphone, so debug builds accept a recording in its
@@ -160,6 +174,7 @@ the desktop), and two dictations in a row are pasted without a space between the
 - [NVIDIA Parakeet TDT 0.6B v3](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3) (CC BY 4.0), in the int8 ONNX export packaged by [csukuangfj](https://huggingface.co/csukuangfj/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8)
 - [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) and [ONNX Runtime](https://onnxruntime.ai)
 - [Jetpack Compose](https://developer.android.com/compose)
+- [Inter](https://rsms.me/inter/) (OFL), used in the illustrations
 
 ## License
 
