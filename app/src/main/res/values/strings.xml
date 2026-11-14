@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">fulltalk dev</string>
+    <string name="slogan">code is cheap, show me the talk</string>
+    <string name="accessibility_summary">Microfone flutuante para ditar em qualquer app</string>
+    <string name="accessibility_description">O fulltalk dev mostra um microfone flutuante sobre os outros apps. Toque para falar: a fala é transcrita no próprio aparelho e colada no campo de texto em foco.\n\nA permissão de acessibilidade é usada só para duas coisas: manter o microfone visível sobre os apps e descobrir qual campo de texto está em foco para colar a transcrição. Nada do que aparece na tela é lido, guardado ou enviado para fora do aparelho.</string>
+</resources>

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The waveform mark, inside the 66 dp safe zone of the 108 dp adaptive canvas. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:scaleX="0.4375"
+        android:scaleY="0.4375"
+        android:translateX="26"
+        android:translateY="26">
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M26.85,46.1h0a5.45,5.45 0,0 1,5.45 5.45v24.9a5.45,5.45 0,0 1,-5.45 5.45h0a5.45,5.45 0,0 1,-5.45 -5.45v-24.9a5.45,5.45 0,0 1,5.45 -5.45z" />
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M45.45,30.7h0a5.45,5.45 0,0 1,5.45 5.45v55.7a5.45,5.45 0,0 1,-5.45 5.45h0a5.45,5.45 0,0 1,-5.45 -5.45v-55.7a5.45,5.45 0,0 1,5.45 -5.45z" />
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M64.05,14.1h0a5.45,5.45 0,0 1,5.45 5.45v88.9a5.45,5.45 0,0 1,-5.45 5.45h0a5.45,5.45 0,0 1,-5.45 -5.45v-88.9a5.45,5.45 0,0 1,5.45 -5.45z" />
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M82.65,30.7h0a5.45,5.45 0,0 1,5.45 5.45v55.7a5.45,5.45 0,0 1,-5.45 5.45h0a5.45,5.45 0,0 1,-5.45 -5.45v-55.7a5.45,5.45 0,0 1,5.45 -5.45z" />
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M101.25,46.1h0a5.45,5.45 0,0 1,5.45 5.45v24.9a5.45,5.45 0,0 1,-5.45 5.45h0a5.45,5.45 0,0 1,-5.45 -5.45v-24.9a5.45,5.45 0,0 1,5.45 -5.45z" />
+    </group>
+</vector>
