@@ -1,0 +1,13 @@
+.gradle/
+build/
+local.properties
+*.iml
+.idea/
+.kotlin/
+captures/
+*.apk
+*.aab
+*.keystore
+*.jks
+# Downloaded at build time (see app/build.gradle.kts).
+app/libs/*.aar
