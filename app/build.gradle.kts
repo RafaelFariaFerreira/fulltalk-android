@@ -1,11 +1,25 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.net.URI
 import java.security.MessageDigest
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
 }
+
+// Phones are arm64; x86_64 is there for the emulator. A release for phones is
+// built with -Pfulltalk.abis=arm64-v8a, which halves the APK.
+val abis = providers.gradleProperty("fulltalk.abis").orNull?.split(",") ?: listOf("arm64-v8a", "x86_64")
+
+// The release key lives outside the repository. The Gradle property
+// `fulltalk.keystore` (or the FULLTALK_KEYSTORE environment variable) names a
+// properties file with storeFile, storePassword, keyAlias and keyPassword.
+// Without it, assembleRelease still works and leaves the APK unsigned.
+val releaseKey = (providers.gradleProperty("fulltalk.keystore").orNull ?: System.getenv("FULLTALK_KEYSTORE"))
+    ?.let(::File)
+    ?.takeIf(File::isFile)
+    ?.let { file -> Properties().apply { file.inputStream().use(::load) } }
 
 android {
     namespace = "dev.fulltalk.app"
@@ -17,13 +31,24 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "0.1.0"
-        // Phones are arm64; x86_64 is there for the emulator.
-        ndk { abiFilters += listOf("arm64-v8a", "x86_64") }
+        ndk { abiFilters += abis }
+    }
+
+    signingConfigs {
+        if (releaseKey != null) {
+            create("release") {
+                storeFile = file(releaseKey.getProperty("storeFile"))
+                storePassword = releaseKey.getProperty("storePassword")
+                keyAlias = releaseKey.getProperty("keyAlias")
+                keyPassword = releaseKey.getProperty("keyPassword")
+            }
+        }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.findByName("release")
         }
     }
 
@@ -43,6 +68,9 @@ android {
         disable += "OldTargetApi"
         // Dependency versions are bumped deliberately, not on every lint run.
         disable += setOf("GradleDependency", "NewerVersionAvailable", "AndroidGradlePluginVersion")
+        // The ABI list is a build parameter (see `abis`), so lint cannot see that the
+        // default one includes x86_64.
+        disable += "ChromeOsAbiSupport"
     }
 
     // The speech runtime ships its own native libraries; keep them uncompressed so they load fast.
