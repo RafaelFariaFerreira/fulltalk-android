@@ -8,6 +8,7 @@ A floating microphone for your phone. Tap it, speak, and the text lands in whate
 field you are typing in. The speech is transcribed on the device: nothing leaves it.
 
 [![CI](https://github.com/RafaelFariaFerreira/fulltalk-android/actions/workflows/ci.yml/badge.svg)](https://github.com/RafaelFariaFerreira/fulltalk-android/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/RafaelFariaFerreira/fulltalk-android)](https://github.com/RafaelFariaFerreira/fulltalk-android/releases/latest)
 ![Kotlin](https://img.shields.io/badge/kotlin-2.4-7F52FF)
 ![Android](https://img.shields.io/badge/android-8.0%2B-3DDC84)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
@@ -67,7 +68,79 @@ key and no server. Dictated text is excluded from cloud backup and device transf
 
 ## Install
 
-There is no store release yet: build it and install it over USB.
+**[Download fulltalk-dev.apk](https://github.com/RafaelFariaFerreira/fulltalk-android/releases/latest/download/fulltalk-dev.apk)**
+(40 MB). It needs Android 8.0 or newer on a 64-bit ARM phone, which is any phone from
+the last several years. Older versions are on the
+[releases page](https://github.com/RafaelFariaFerreira/fulltalk-android/releases).
+
+1. **Open the downloaded file** on the phone. The first time, Android asks whether your
+   browser or file manager may install apps (*Instalar apps desconhecidos*): allow it,
+   go back and tap **Install**.
+2. **Open fulltalk dev** and follow its three steps:
+   - **Modelo de voz**: download the speech model. It is 670 MB, so use Wi-Fi. An
+     interrupted download resumes, and every file is verified against its size and
+     SHA-256 before it is used.
+   - **Microfone**: allow the microphone.
+   - **Bolinha flutuante**: turn fulltalk dev on under Settings → Accessibility. Android
+     asks whether the app may have "full control of your device", which is its wording
+     for every accessibility service. What this one does with it is in
+     [the table above](#privacy-and-permissions).
+3. The bubble appears in the top-right corner. Put the cursor in any text field and tap it.
+
+### If Android gets in the way
+
+fulltalk dev comes from outside the Play Store and asks for an accessibility service.
+Banking trojans look the same from the outside, so Android may refuse at up to three
+points. None of them is about this app in particular, and each one can be switched off
+for the minute it takes.
+
+| What you see | Why | What to do |
+|---|---|---|
+| Play Protect blocks the install outright, with no button to continue | Its fraud protection, active in Brazil and a growing list of countries, refuses any APK that arrives through a browser, a messaging app or a file manager and declares an accessibility service. | Play Store → your picture → **Play Protect** → ⚙ → turn off **Scan apps with Play Protect** (*Verificar apps com o Play Protect*). Install the APK, then turn it back on. Or [install over USB](#install-over-usb), which this check does not cover. |
+| Play Protect says it does not know the app or its developer | The ordinary warning for an app Google has not seen before. | **Scan app**, then **Install**. If it only warns: **More details → Install anyway**. |
+| On a Samsung, a message that Auto Blocker stopped the install | Auto Blocker (*Bloqueador automático*) only lets the Play Store and the Galaxy Store install apps. It also blocks commands sent over USB. | Settings → Security and privacy → **Auto Blocker** → off. Install, then turn it back on. |
+| "Restricted setting" when you turn the service on under Accessibility, or the switch is greyed out | Since Android 13, an app installed from a file cannot become an accessibility service until you say so. | Settings → Apps → fulltalk dev → **⋮** (top right) → **Allow restricted settings** (*Permitir configurações restritas*), confirm with your PIN or fingerprint, then go back to Accessibility. The menu entry only exists after you have seen the "Restricted setting" message once. |
+| The bubble is gone after a few hours | Some phones (Xiaomi, Samsung, Oppo and others) stop background services to save battery. | Settings → Apps → fulltalk dev → Battery → **Unrestricted**, then turn the service on again under Accessibility. |
+
+**Developer verification.** Since 30 September 2026, Android checks in Brazil, Indonesia,
+Singapore and Thailand that an app's developer is registered with Google. For now that
+covers apps coming from the participating app stores, not a file you downloaded
+yourself, so it does not affect this APK. Google plans to widen it in 2027. If your
+phone then refuses the install because the developer is unverified, either install over
+USB, which is exempt, or turn on **Apps from unverified developers** under Developer
+options: the phone restarts, makes you wait 24 hours once, and then lets you confirm.
+
+### Install over USB
+
+The route with the fewest obstacles. Play Protect's fraud block and developer
+verification do not apply to it, and neither does the "Restricted setting" step
+(checked on Android 15).
+
+1. On the phone: Settings → About phone → tap **Build number** seven times. Then
+   Settings → System → Developer options → turn on **USB debugging**. On a Xiaomi, also
+   turn on **Install via USB**. On a Samsung, turn Auto Blocker off first.
+2. On the computer: get `adb` from the
+   [Android platform tools](https://developer.android.com/tools/releases/platform-tools),
+   plug the phone in and accept the "Allow USB debugging?" prompt on its screen.
+3. Install:
+
+   ```sh
+   adb install fulltalk-dev.apk
+   ```
+
+Then follow steps 2 and 3 above. USB debugging can be turned off again afterwards.
+
+### Check what you downloaded
+
+Each release lists the SHA-256 of its APK. All of them are signed with the same key:
+
+```sh
+sha256sum fulltalk-dev.apk
+apksigner verify --print-certs fulltalk-dev.apk
+# Signer #1 certificate SHA-256 digest: 254bef839025e1e3f2480d3810ef6da70a15c7117ca529cc044a80e2c4a589f0
+```
+
+### Build from source
 
 Requirements: JDK 17 or newer and the Android SDK (platform 37, build tools). Android
 Studio brings both; from a terminal, set `ANDROID_HOME` to the SDK.
@@ -80,15 +153,8 @@ adb install app/build/outputs/apk/debug/app-debug.apk
 ```
 
 The first build downloads sherpa-onnx (49 MB) and checks it against a pinned SHA-256.
-
-Then open **fulltalk dev** on the phone and follow its three steps:
-
-1. **Modelo de voz**: download the model. An interrupted download resumes, and every file
-   is verified against its size and SHA-256 before it is used.
-2. **Microfone**: allow the microphone.
-3. **Bolinha flutuante**: turn fulltalk dev on under Settings → Accessibility.
-
-The bubble appears in the top-right corner. Put the cursor in any text field and tap it.
+A debug build and a release are signed with different keys, so one cannot be installed
+over the other: uninstall first.
 
 ## Architecture
 
@@ -147,6 +213,17 @@ adb shell am broadcast -a dev.fulltalk.app.debug.DICTATE \
 
 Avoid `uiautomator dump` while testing: it suspends every accessibility service, the
 bubble included.
+
+## Releasing
+
+Release APKs are signed with a key that is not in the repository. Point the Gradle
+property `fulltalk.keystore` (in `~/.gradle/gradle.properties`) or the
+`FULLTALK_KEYSTORE` environment variable at a properties file with `storeFile`,
+`storePassword`, `keyAlias` and `keyPassword`. Then, on a clean and pushed `main`:
+
+```sh
+scripts/release.sh        # builds the arm64 APK and publishes v<versionName> on GitHub
+```
 
 ## Status
 
