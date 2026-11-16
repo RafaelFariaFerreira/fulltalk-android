@@ -32,7 +32,7 @@ The app is a single bubble that floats over every other app:
 
 | Gesture | What it does |
 |---|---|
-| **Tap** | Starts recording. Tap again to stop and transcribe. |
+| **Tap** | Starts recording. Tap again to stop and transcribe. While it transcribes the bubble shows an ✕: tap it to cancel. |
 | **Hold** | Records while your finger is down, transcribes when you let go. |
 | **Double tap** | Opens the app (setup, settings, recent transcriptions). |
 | **Drag** | Moves the bubble. It remembers where you left it. |

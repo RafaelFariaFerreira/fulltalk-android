@@ -76,6 +76,14 @@ class BubbleService : AccessibilityService() {
     private var alertUntil = 0L
 
     /**
+     * Which transcription the session is waiting for. A cancelled one keeps
+     * running (the decoder cannot be interrupted), so its result is told apart
+     * by this number and dropped.
+     */
+    @Volatile
+    private var transcription = 0
+
+    /**
      * A recording to use in place of the microphone, once. Only debug builds
      * ever set it (see `DebugHooks`), to test on emulators that cannot hear.
      */
@@ -257,6 +265,10 @@ class BubbleService : AccessibilityService() {
                 Effect.StartCapture -> startCapture()
                 Effect.FinishCapture -> finishCapture()
                 Effect.DiscardCapture -> recorder.stop()
+                Effect.DiscardTranscription -> {
+                    transcription++
+                    say("Transcrição cancelada")
+                }
                 is Effect.Deliver -> deliver(effect.text)
                 is Effect.Notify -> notify(effect.notice)
             }
@@ -285,11 +297,14 @@ class BubbleService : AccessibilityService() {
             apply(Input.NothingCaptured)
             return
         }
+        val id = ++transcription
         worker.execute {
+            if (id != transcription) return@execute // cancelled while it waited its turn
             val started = SystemClock.elapsedRealtime()
             val result = runCatching { app.transcriber.transcribe(samples) }
             Log.i(TAG, "transcribed ${samples.size / 16_000f} s in ${SystemClock.elapsedRealtime() - started} ms")
             main.post {
+                if (id != transcription) return@post // cancelled: the text is not wanted anymore
                 result.fold(
                     onSuccess = { apply(Input.TranscriptionSucceeded(it)) },
                     onFailure = { apply(Input.TranscriptionFailed(it.message ?: "falha na transcrição")) },

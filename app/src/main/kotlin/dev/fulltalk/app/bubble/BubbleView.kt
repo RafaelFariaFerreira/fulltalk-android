@@ -10,7 +10,8 @@ import kotlin.math.sin
 
 /**
  * The floating microphone: grey while idle, violet while it listens or
- * transcribes, amber when something went wrong.
+ * transcribes, amber when something went wrong. While it transcribes the
+ * microphone gives way to an X: tapping it then cancels.
  */
 class BubbleView(context: Context) : View(context) {
     enum class Mode { IDLE, RECORDING, BUSY, PREPARING, ALERT }
@@ -59,7 +60,11 @@ class BubbleView(context: Context) : View(context) {
         canvas.drawCircle(cx, cy, radius, fill)
 
         line.strokeWidth = 2.2f * dp
-        if (mode == Mode.ALERT) drawWarning(canvas, cx, cy) else drawMicrophone(canvas, cx, cy)
+        when (mode) {
+            Mode.ALERT -> drawWarning(canvas, cx, cy)
+            Mode.BUSY -> drawCancel(canvas, cx, cy)
+            else -> drawMicrophone(canvas, cx, cy)
+        }
 
         // Progress rides just inside the rim, in white so it shows on any fill.
         if (mode == Mode.BUSY || mode == Mode.PREPARING) {
@@ -79,6 +84,13 @@ class BubbleView(context: Context) : View(context) {
         box.set(cx - 8.5f * dp, cy - 9.5f * dp, cx + 8.5f * dp, cy + 7.5f * dp)
         canvas.drawArc(box, 0f, 180f, false, line)
         canvas.drawLine(cx, cy + 7.5f * dp, cx, cy + 11.5f * dp, line)
+    }
+
+    private fun drawCancel(canvas: Canvas, cx: Float, cy: Float) {
+        val arm = 6.5f * dp
+        line.strokeWidth = 2.6f * dp
+        canvas.drawLine(cx - arm, cy - arm, cx + arm, cy + arm, line)
+        canvas.drawLine(cx - arm, cy + arm, cx + arm, cy - arm, line)
     }
 
     private fun drawWarning(canvas: Canvas, cx: Float, cy: Float) {

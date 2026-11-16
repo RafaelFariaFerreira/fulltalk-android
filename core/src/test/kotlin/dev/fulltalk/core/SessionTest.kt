@@ -73,9 +73,19 @@ class SessionTest {
     }
 
     @Test
-    fun `input is ignored while transcribing`() {
+    fun `a tap cancels a transcription in progress`() {
         val session = Session(State.Transcribing)
-        for (input in listOf(Input.Tapped, Input.HoldStarted, Input.HoldReleased)) {
+        assertEquals(listOf(Effect.DiscardTranscription), session.handle(Input.Tapped))
+        assertEquals(State.Idle, session.state)
+        // Its result arrives anyway, and goes nowhere.
+        assertTrue(session.handle(Input.TranscriptionSucceeded("tarde demais")).isEmpty())
+        assertEquals(State.Idle, session.state)
+    }
+
+    @Test
+    fun `holds are ignored while transcribing`() {
+        val session = Session(State.Transcribing)
+        for (input in listOf(Input.HoldStarted, Input.HoldReleased)) {
             assertTrue(session.handle(input).isEmpty())
             assertEquals(State.Transcribing, session.state)
         }

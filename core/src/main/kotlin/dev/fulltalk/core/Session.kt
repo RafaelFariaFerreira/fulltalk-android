@@ -35,6 +35,10 @@ class Session(state: State = State.Idle) {
             current is State.Recording && input is Input.CaptureFailed ->
                 State.Idle to listOf(Effect.Notify(Notice.Error(input.reason)))
 
+            // The bubble shows an X while it transcribes: a tap gives up on the text.
+            current is State.Transcribing && input is Input.Tapped ->
+                State.Idle to listOf(Effect.DiscardTranscription)
+
             current is State.Transcribing && input is Input.TranscriptionFailed ->
                 State.Idle to listOf(Effect.Notify(Notice.Error(input.reason)))
 
@@ -46,7 +50,7 @@ class Session(state: State = State.Idle) {
                 State.Idle to listOf(if (clean.isEmpty()) Effect.Notify(Notice.NothingHeard) else Effect.Deliver(clean))
             }
 
-            // Everything else is a no-op (taps while busy, stray releases, late results).
+            // Everything else is a no-op (holds while busy, stray releases, late results).
             else -> current to emptyList()
         }
         state = next
@@ -99,6 +103,9 @@ sealed interface Effect {
 
     /** Stop the microphone and drop what was captured. */
     data object DiscardCapture : Effect
+
+    /** Give up on the transcription in progress: its result must never be delivered. */
+    data object DiscardTranscription : Effect
 
     /** Hand the final text to the delivery layer (clipboard, paste, history). */
     data class Deliver(val text: String) : Effect
