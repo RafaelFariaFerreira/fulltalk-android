@@ -3,7 +3,7 @@ package dev.fulltalk.app.model
 import dev.fulltalk.core.Fetcher
 import dev.fulltalk.core.InstallException
 import dev.fulltalk.core.ModelStore
-import dev.fulltalk.core.PARAKEET_TDT_V3_INT8
+import dev.fulltalk.core.PARAKEET_ULTRA_INT8
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -26,7 +26,12 @@ sealed interface ModelState {
 
 /** Owns the speech model on disk and its one-time download. */
 class ModelManager(filesDir: File, private val scope: CoroutineScope) {
-    val store = ModelStore(File(filesDir, "models"), PARAKEET_TDT_V3_INT8)
+    val store = ModelStore(File(filesDir, "models"), PARAKEET_ULTRA_INT8)
+
+    init {
+        // A model left behind by an earlier version of the app is 670 MB nothing reads anymore.
+        store.dir.parentFile?.listFiles()?.filter { it != store.dir }?.forEach { it.deleteRecursively() }
+    }
 
     private val _state = MutableStateFlow(if (store.isInstalled()) ModelState.Ready else ModelState.Missing)
     val state: StateFlow<ModelState> = _state.asStateFlow()

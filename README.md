@@ -4,7 +4,7 @@
 
 <br><br>
 
-A floating microphone for your phone. Tap it, speak, and the text lands in whatever
+A floating microphone for your phone. Hold it, speak, and the text lands in whatever
 field you are typing in. The speech is transcribed on the device: nothing leaves it.
 
 [![CI](https://github.com/RafaelFariaFerreira/fulltalk-android/actions/workflows/ci.yml/badge.svg)](https://github.com/RafaelFariaFerreira/fulltalk-android/actions/workflows/ci.yml)
@@ -18,22 +18,22 @@ field you are typing in. The speech is transcribed on the device: nothing leaves
 </div>
 
 This is the Android companion of [fulltalk dev](https://github.com/RafaelFariaFerreira/fulltalk-dev),
-the desktop push-to-talk dictation app. Same idea, same model, same rules, rebuilt for a
-touch screen.
+the desktop push-to-talk dictation app. Same idea, same rules, rebuilt for a touch
+screen.
 
 ## How it works
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/illustrations/how-it-works-dark.png">
-  <img src="docs/illustrations/how-it-works-light.png" alt="Three steps: tap the bubble, speak, and the text is pasted into the field you are typing in" width="100%">
+  <img src="docs/illustrations/how-it-works-light.png" alt="Three steps: hold the bubble, speak, and the text is pasted into the field you are typing in" width="100%">
 </picture>
 
 The app is a single bubble that floats over every other app:
 
 | Gesture | What it does |
 |---|---|
-| **Tap** | Starts recording. Tap again to stop and transcribe. While it transcribes the bubble shows an ✕: tap it to cancel. |
-| **Hold** | Records while your finger is down, transcribes when you let go. |
+| **Hold** | Listens while your finger is down, for as long as you like, and stops when you let go. The speech is transcribed as you go, so the text is ready soon after. |
+| **Tap** | While the last words are being transcribed the bubble shows an ✕: tap it to cancel. A tap starts nothing. |
 | **Double tap** | Opens the app (setup, settings, recent transcriptions). |
 | **Drag** | Moves the bubble. It remembers where you left it. |
 
@@ -62,8 +62,9 @@ app, one tap to copy again.
 | **Accessibility service** | Two things, and nothing else: it lets the bubble's window sit on top of other apps, and it tells the app which text field has focus so the transcription can be pasted there. The service does not listen to accessibility events and does not read, store or send anything that is on screen. |
 | **Internet** | Used once, to download the speech model (670 MB). After that the app works offline. |
 
-Recognition runs on the phone's CPU with [NVIDIA Parakeet TDT 0.6B v3](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3)
-through [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx). There is no account, no API
+Recognition runs on the phone's CPU with [Parakeet Ultra](https://huggingface.co/moondream/parakeet-ultra),
+Moondream's further training of NVIDIA Parakeet TDT 0.6B v3, through
+[sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx). There is no account, no API
 key and no server. Dictated text is excluded from cloud backup and device transfer.
 
 ## Install
@@ -85,7 +86,8 @@ the last several years. Older versions are on the
      asks whether the app may have "full control of your device", which is its wording
      for every accessibility service. What this one does with it is in
      [the table above](#privacy-and-permissions).
-3. The bubble appears in the top-right corner. Put the cursor in any text field and tap it.
+3. The bubble appears in the top-right corner. Put the cursor in any text field, hold the
+   bubble and talk.
 
 ### If Android gets in the way
 
@@ -161,24 +163,24 @@ over the other: uninstall first.
 ```
 core/   pure Kotlin, no Android: the rules. Runs and is tested on a plain JVM.
 app/    Android: the bubble, the microphone, the model, the screen.
+eval/   the real model over minutes of real speech, on the desktop. Run on request.
 ```
 
 | Module | Responsibility | Tests |
 |---|---|---|
-| [`core`](core) | Session state machine, bubble gesture recognition, history, text clean-up, silence gate, paste-or-clipboard policy, verified model installer | 60 unit tests |
+| [`core`](core) | Session state machine, bubble gesture recognition, history, text clean-up, silence gate, speech streamed to the model in buckets, paste-or-clipboard policy, verified model installer | 81 unit tests |
 | [`app`](app) | Accessibility service with the floating bubble, `AudioRecord` capture, sherpa-onnx transcriber, model download, Compose screen | exercised on an emulator (see below) |
 
 Some decisions worth calling out:
 
 - **The flow is a pure state machine.** [`Session`](core/src/main/kotlin/dev/fulltalk/core/Session.kt)
   takes inputs (`Tapped`, `HoldStarted`, …) and answers with effects (`StartCapture`,
-  `Deliver`, …). Every rule, such as "letting go does not stop a recording that a tap
-  started", is a unit test with no microphone, model or screen involved. It is a port of
-  the desktop app's Rust state machine.
+  `Deliver`, …). Every rule, such as "only letting go ends a recording", is a unit test
+  with no microphone, model or screen involved. It started as a port of the desktop
+  app's Rust state machine.
 - **One finger, four meanings.** [`BubbleGesture`](core/src/main/kotlin/dev/fulltalk/core/BubbleGesture.kt)
-  tells tap, double tap, hold and drag apart. The first tap of a double tap acts at once,
-  so a single tap never waits for a timeout; the second one cancels the recording the
-  first one started instead of transcribing a fraction of a second.
+  tells hold, tap, double tap and drag apart. Only a hold records: the microphone is
+  open exactly while the finger is down, so a recording can never be left running.
 - **An accessibility overlay, not "draw over other apps".** The bubble's window is of
   type `TYPE_ACCESSIBILITY_OVERLAY`, which the accessibility service is allowed to add by
   itself. That saves a second scary permission, and the window is never focusable, so
@@ -186,6 +188,14 @@ Some decisions worth calling out:
 - **No toasts.** Android drops toasts from apps that are in the background without the
   notification permission, and the bubble always is. Messages are drawn in a small
   window of their own beside the bubble.
+- **Speech is streamed to the model, never recorded.** The model was trained on short
+  utterances: given minutes in one pass it drops sentences and drifts into other
+  languages, and its memory grows with the square of the length (more than 4 GB for
+  four minutes). So [`SpeechBuckets`](core/src/main/kotlin/dev/fulltalk/core/Speech.kt)
+  hands it the dictation in buckets of at most 30 seconds while the bubble is still
+  held: a full bucket is cut at its quietest moment and sent, and letting go sends the
+  open one. Each bucket is transcribed and dropped and the texts are joined, so the
+  bubble can be held for as long as there is something to say.
 - **Pinned downloads.** The model comes from a pinned Hugging Face revision and
   sherpa-onnx from a pinned release; both are checked against SHA-256 sums that live in
   the source.
@@ -193,7 +203,8 @@ Some decisions worth calling out:
 ## Testing
 
 ```sh
-./gradlew :core:test            # 60 unit tests, plain JVM
+./gradlew :core:test            # 81 unit tests, plain JVM
+./gradlew :eval:test            # the real model over 4 and 5 minutes of speech (Linux x86_64, 1 GB of downloads)
 ./gradlew :app:lintDebug        # Android lint, warnings are errors
 scripts/make-illustrations.py   # render docs/illustrations/*.svg (needs Chrome and Pillow)
 scripts/make-hero.py            # compose docs/hero.png from the screenshots (needs Pillow)
@@ -248,7 +259,8 @@ the desktop), and two dictations in a row are pasted without a space between the
 
 ## Credits
 
-- [NVIDIA Parakeet TDT 0.6B v3](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3) (CC BY 4.0), in the int8 ONNX export packaged by [csukuangfj](https://huggingface.co/csukuangfj/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8)
+- [Parakeet Ultra](https://huggingface.co/moondream/parakeet-ultra) by Moondream, trained from [NVIDIA Parakeet TDT 0.6B v3](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3) (both CC BY 4.0), in the int8 ONNX export for sherpa-onnx by [leogaudin](https://huggingface.co/leogaudin/sherpa-onnx-nemo-parakeet-ultra-int8)
+- [FLEURS](https://huggingface.co/datasets/google/fleurs) (CC BY 4.0), the speech the long-dictation test is made of
 - [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) and [ONNX Runtime](https://onnxruntime.ai)
 - [Jetpack Compose](https://developer.android.com/compose)
 - [Inter](https://rsms.me/inter/) (OFL), used in the illustrations

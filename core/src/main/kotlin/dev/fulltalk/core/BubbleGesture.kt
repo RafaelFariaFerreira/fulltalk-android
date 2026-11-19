@@ -5,11 +5,11 @@ import kotlin.math.hypot
 /**
  * Turns raw touches on the bubble into what the user meant.
  *
- * One finger has to do four things: tap (toggle recording), double tap (open
- * the app), hold (talk while held) and drag (move the bubble). The first tap
- * of a double tap is reported as a plain [BubbleEvent.Tap] right away, so a
- * single tap never waits for a timeout; the second arrives as
- * [BubbleEvent.DoubleTap] and the caller undoes what the first one started.
+ * One finger has to do four things: hold (talk while held), tap (cancel a
+ * transcription), double tap (open the app) and drag (move the bubble). The
+ * first tap of a double tap is reported as a plain [BubbleEvent.Tap] right
+ * away, so a single tap never waits for a timeout; the second arrives as
+ * [BubbleEvent.DoubleTap].
  *
  * Times are in milliseconds from any monotonic clock, distances in pixels.
  */

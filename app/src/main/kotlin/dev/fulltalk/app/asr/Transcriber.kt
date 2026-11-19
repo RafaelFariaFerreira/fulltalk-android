@@ -9,9 +9,9 @@ import dev.fulltalk.core.MODEL_SAMPLE_RATE
 import dev.fulltalk.core.ModelStore
 
 /**
- * Speech to text with NVIDIA Parakeet TDT, running on the CPU through
- * sherpa-onnx. Loading takes seconds and hundreds of megabytes, so the model
- * is loaded once and kept; calls are serialized.
+ * Speech to text with Parakeet Ultra, running on the CPU through sherpa-onnx.
+ * Loading takes seconds and hundreds of megabytes, so the model is loaded
+ * once and kept; calls are serialized.
  */
 class Transcriber(private val store: ModelStore) {
     private var recognizer: OfflineRecognizer? = null
@@ -42,7 +42,10 @@ class Transcriber(private val store: ModelStore) {
         recognizer = OfflineRecognizer(null, config)
     }
 
-    /** Transcribes 16 kHz mono samples in the -1…1 range. */
+    /**
+     * Transcribes 16 kHz mono samples in the -1…1 range: one bucket of a
+     * dictation, never more than `MAX_BUCKET_SECONDS` (see `SpeechBuckets`).
+     */
     @Synchronized
     fun transcribe(samples: FloatArray): String {
         val recognizer = checkNotNull(recognizer) { "o modelo de voz não foi carregado" }

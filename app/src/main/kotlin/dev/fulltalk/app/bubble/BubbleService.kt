@@ -36,8 +36,10 @@ import dev.fulltalk.core.FocusTarget
 import dev.fulltalk.core.Input
 import dev.fulltalk.core.Notice
 import dev.fulltalk.core.Session
+import dev.fulltalk.core.SpeechBuckets
 import dev.fulltalk.core.State
 import dev.fulltalk.core.deliveryPlan
+import dev.fulltalk.core.narrate
 import dev.fulltalk.core.rejectionFor
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -46,6 +48,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import java.io.IOException
 import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.roundToInt
 
 /**
@@ -76,12 +79,29 @@ class BubbleService : AccessibilityService() {
     private var alertUntil = 0L
 
     /**
-     * Which transcription the session is waiting for. A cancelled one keeps
-     * running (the decoder cannot be interrupted), so its result is told apart
-     * by this number and dropped.
+     * The dictation in progress, from the moment the bubble is held to the
+     * delivery of its text; `null` in between and once it is cancelled. Its
+     * buckets are transcribed while the bubble is still held, one at a time
+     * and in order; letting go sends the last one.
      */
     @Volatile
-    private var transcription = 0
+    private var dictation: Dictation? = null
+
+    /** The text of one dictation as it grows. Written on the worker thread only. */
+    private class Dictation {
+        /** Whether any bucket was worth sending to the model. */
+        @Volatile
+        var heard = false
+
+        @Volatile
+        var text = ""
+
+        @Volatile
+        var failure: Throwable? = null
+    }
+
+    /** Buckets recorded but not transcribed yet: it grows if the phone is slower than the speaker. */
+    private val waiting = AtomicInteger()
 
     /**
      * A recording to use in place of the microphone, once. Only debug builds
@@ -131,6 +151,7 @@ class BubbleService : AccessibilityService() {
         if (bubble != null) DebugHooks.uninstall(this)
         main.removeCallbacksAndMessages(null)
         scope.cancel()
+        dictation = null
         if (recorder.isRecording) recorder.stop()
         if (::hint.isInitialized) hint.hide()
         bubble?.let { windows.removeView(it) }
@@ -214,15 +235,10 @@ class BubbleService : AccessibilityService() {
         when (event) {
             null -> return
             BubbleEvent.Tap -> if (canStart()) apply(Input.Tapped)
-            BubbleEvent.HoldStarted -> if (canStart()) {
-                bubble?.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                apply(Input.HoldStarted)
-            }
+            BubbleEvent.HoldStarted -> if (canStart()) apply(Input.HoldStarted)
             BubbleEvent.HoldReleased -> apply(Input.HoldReleased)
             BubbleEvent.DoubleTap -> {
-                // The first tap of the pair has already toggled recording. If it
-                // started one, drop it; if it stopped one, let that finish.
-                apply(Input.Cancelled)
+                hint.hide() // whatever the first tap of the pair had to say
                 openApp()
             }
             is BubbleEvent.Drag -> moveTo(dragOrigin.first + event.dx.roundToInt(), dragOrigin.second + event.dy.roundToInt())
@@ -232,7 +248,7 @@ class BubbleService : AccessibilityService() {
 
     /** Whether a new recording may start; says what is missing when it may not. */
     private fun canStart(): Boolean {
-        if (session.state != State.Idle) return true // stopping is always allowed
+        if (session.state != State.Idle) return true // letting go and cancelling are always allowed
         val missing = when {
             app.model.state.value != ModelState.Ready -> "Baixe o modelo de voz no app antes de ditar."
             !app.transcriber.isLoaded -> "Carregando o modelo de voz, só um instante."
@@ -262,11 +278,16 @@ class BubbleService : AccessibilityService() {
     private fun apply(input: Input) {
         for (effect in session.handle(input)) {
             when (effect) {
-                Effect.StartCapture -> startCapture()
-                Effect.FinishCapture -> finishCapture()
-                Effect.DiscardCapture -> recorder.stop()
+                Effect.StartCapture -> {
+                    bubble?.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS) // now it listens
+                    startCapture()
+                }
+                Effect.FinishCapture -> {
+                    bubble?.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS) // and now it stopped
+                    finishCapture()
+                }
                 Effect.DiscardTranscription -> {
-                    transcription++
+                    dictation = null
                     say("Transcrição cancelada")
                 }
                 is Effect.Deliver -> deliver(effect.text)
@@ -277,37 +298,74 @@ class BubbleService : AccessibilityService() {
     }
 
     private fun startCapture() {
+        val started = Dictation()
+        dictation = started
         if (injectedRecording != null) return // no microphone needed for this one
         try {
-            recorder.start()
+            recorder.start { bucket -> transcribe(started, bucket) }
         } catch (error: IOException) {
             Log.w(TAG, "could not open the microphone", error)
+            dictation = null
             apply(Input.CaptureFailed(error.message ?: "microfone indisponível"))
         } catch (error: SecurityException) {
             Log.w(TAG, "microphone refused", error)
+            dictation = null
             apply(Input.CaptureFailed("o sistema não liberou o microfone"))
         }
     }
 
-    private fun finishCapture() {
-        val samples = injectedRecording?.also { injectedRecording = null } ?: recorder.stop()
-        val rejected = rejectionFor(samples)
+    /**
+     * Queues one bucket of [owner] for the model. Called from the microphone's
+     * thread while the recording goes on, and from the main thread for the
+     * last bucket.
+     */
+    private fun transcribe(owner: Dictation, bucket: FloatArray) {
+        if (dictation !== owner) return
+        val seconds = bucket.size / 16_000f
+        val rejected = rejectionFor(bucket)
         if (rejected != null) {
-            Log.i(TAG, "recording of ${samples.size / 16_000f} s rejected: $rejected")
+            Log.i(TAG, "bucket of $seconds s rejected: $rejected")
+            return
+        }
+        owner.heard = true
+        waiting.incrementAndGet()
+        worker.execute {
+            val behind = waiting.decrementAndGet()
+            if (dictation !== owner) return@execute // cancelled: nobody is waiting for this text
+            val started = SystemClock.elapsedRealtime()
+            runCatching { app.transcriber.transcribe(bucket) }
+                .onSuccess { owner.text = narrate(owner.text, it) }
+                .onFailure {
+                    Log.w(TAG, "a bucket of $seconds s could not be transcribed", it)
+                    owner.failure = it
+                }
+            Log.i(TAG, "transcribed $seconds s in ${SystemClock.elapsedRealtime() - started} ms, $behind bucket(s) waiting")
+        }
+    }
+
+    private fun finishCapture() {
+        val owner = dictation ?: return
+        val last = injectedRecording?.also { injectedRecording = null }
+            ?.let { recording -> SpeechBuckets().run { feed(recording) + listOfNotNull(finish()) } }
+            ?: listOfNotNull(recorder.stop())
+        last.forEach { transcribe(owner, it) }
+        if (!owner.heard) {
+            dictation = null
             apply(Input.NothingCaptured)
             return
         }
-        val id = ++transcription
+        // Queued behind every bucket of this dictation, so it runs when the text is complete.
         worker.execute {
-            if (id != transcription) return@execute // cancelled while it waited its turn
-            val started = SystemClock.elapsedRealtime()
-            val result = runCatching { app.transcriber.transcribe(samples) }
-            Log.i(TAG, "transcribed ${samples.size / 16_000f} s in ${SystemClock.elapsedRealtime() - started} ms")
             main.post {
-                if (id != transcription) return@post // cancelled: the text is not wanted anymore
-                result.fold(
-                    onSuccess = { apply(Input.TranscriptionSucceeded(it)) },
-                    onFailure = { apply(Input.TranscriptionFailed(it.message ?: "falha na transcrição")) },
+                if (dictation !== owner) return@post // cancelled while the last buckets were transcribed
+                dictation = null
+                val failure = owner.failure
+                apply(
+                    if (owner.text.isEmpty() && failure != null) {
+                        Input.TranscriptionFailed(failure.message ?: "falha na transcrição")
+                    } else {
+                        Input.TranscriptionSucceeded(owner.text)
+                    },
                 )
             }
         }
@@ -378,6 +436,8 @@ class BubbleService : AccessibilityService() {
     private fun notify(notice: Notice) {
         when (notice) {
             Notice.NothingHeard -> say("Nada foi captado")
+            Notice.HoldToTalk -> say("Segure para falar")
+            Notice.StillTranscribing -> say("Aguarde: ainda transcrevendo")
             is Notice.Error -> alert(notice.reason)
         }
     }

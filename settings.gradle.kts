@@ -16,4 +16,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "fulltalk-android"
 
-include(":core", ":app")
+include(":core", ":app", ":eval")

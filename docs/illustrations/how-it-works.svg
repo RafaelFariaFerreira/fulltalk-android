@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="384" viewBox="0 0 1280 384" role="img" aria-label="How it works: tap the bubble, speak, and the text is pasted into the field you are typing in">
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="384" viewBox="0 0 1280 384" role="img" aria-label="How it works: hold the bubble, speak, and the text is pasted into the field you are typing in">
   <!-- README "how it works" strip. Render with scripts/make-illustrations.py (light + dark). -->
   <style>
     svg {
@@ -22,7 +22,7 @@
     .mic { fill: none; stroke: var(--on-accent); stroke-width: 3.6; stroke-linecap: round; }
   </style>
 
-  <!-- 1 · tap -->
+  <!-- 1 · hold -->
   <g>
     <rect class="card" x="1" y="1" width="378" height="382" rx="28"/>
     <circle cx="190" cy="124" r="74" fill="none" stroke="var(--ripple)" stroke-width="2" opacity=".45"/>
@@ -35,9 +35,9 @@
     </g>
     <circle cx="51" cy="262" r="15" fill="var(--accent)"/>
     <text class="num" x="51" y="267.5">1</text>
-    <text class="title" x="78" y="270">Tap the bubble</text>
+    <text class="title" x="78" y="270">Hold the bubble</text>
     <text class="desc" x="36" y="310">It floats over whatever app you are in.</text>
-    <text class="desc" x="36" y="334">Or hold it down while you talk.</text>
+    <text class="desc" x="36" y="334">It listens for as long as you hold it.</text>
   </g>
   <path class="arrow" d="M398 128h44M430 116l12 12-12 12"/>
 

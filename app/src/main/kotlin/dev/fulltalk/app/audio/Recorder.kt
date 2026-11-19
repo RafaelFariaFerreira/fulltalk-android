@@ -5,6 +5,7 @@ import android.media.AudioFormat
 import android.media.AudioRecord
 import android.media.MediaRecorder
 import dev.fulltalk.core.MODEL_SAMPLE_RATE
+import dev.fulltalk.core.SpeechBuckets
 import dev.fulltalk.core.meterLevel
 import dev.fulltalk.core.rms
 import java.io.IOException
@@ -13,6 +14,9 @@ import kotlin.concurrent.thread
 /**
  * Microphone capture, straight at the rate the model wants. The microphone is
  * only open while recording, so the system's indicator is off the rest of the time.
+ *
+ * The recording is not kept: it is handed over in buckets while it goes on
+ * (see [SpeechBuckets]), so it can last as long as the speaker does.
  */
 class Recorder {
     /** Live input level, 0–1. */
@@ -23,14 +27,16 @@ class Recorder {
     private var record: AudioRecord? = null
     private var reader: Thread? = null
     private val lock = Any()
-    private var samples = FloatArray(MODEL_SAMPLE_RATE * 30)
-    private var size = 0
+    private var buckets = SpeechBuckets()
 
     val isRecording: Boolean get() = record != null
 
-    /** Opens the microphone and starts buffering. Needs the RECORD_AUDIO permission. */
+    /**
+     * Opens the microphone. Each bucket of speech goes to [onBucket] as soon as
+     * it closes, on the microphone's own thread. Needs the RECORD_AUDIO permission.
+     */
     @SuppressLint("MissingPermission") // checked by the caller, which can explain what is missing
-    fun start() {
+    fun start(onBucket: (FloatArray) -> Unit) {
         check(record == null) { "already recording" }
         val minBytes = AudioRecord.getMinBufferSize(
             MODEL_SAMPLE_RATE,
@@ -54,14 +60,14 @@ class Recorder {
             audio.release()
             throw IOException("o microfone está em uso por outro app")
         }
-        synchronized(lock) { size = 0 }
+        synchronized(lock) { buckets = SpeechBuckets() }
         record = audio
-        reader = thread(name = "fulltalk-mic") { read(audio) }
+        reader = thread(name = "fulltalk-mic") { read(audio, onBucket) }
     }
 
-    /** Closes the microphone and returns what was captured. */
-    fun stop(): FloatArray {
-        val audio = record ?: return FloatArray(0)
+    /** Closes the microphone and returns the bucket that was still open, if it holds anything. */
+    fun stop(): FloatArray? {
+        val audio = record ?: return null
         record = null
         try {
             audio.stop()
@@ -72,26 +78,16 @@ class Recorder {
         reader = null
         audio.release()
         level = 0f
-        return synchronized(lock) { samples.copyOf(size) }
+        return synchronized(lock) { buckets.finish() }
     }
 
-    private fun read(audio: AudioRecord) {
+    private fun read(audio: AudioRecord, onBucket: (FloatArray) -> Unit) {
         val chunk = FloatArray(MODEL_SAMPLE_RATE / 20) // 50 ms
         while (record === audio) {
             val read = audio.read(chunk, 0, chunk.size, AudioRecord.READ_BLOCKING)
             if (read <= 0) break
             level = meterLevel(rms(chunk, read))
-            synchronized(lock) {
-                if (size + read > MAX_SAMPLES) return
-                if (size + read > samples.size) samples = samples.copyOf(minOf(samples.size * 2, MAX_SAMPLES))
-                chunk.copyInto(samples, size, 0, read)
-                size += read
-            }
+            synchronized(lock) { buckets.feed(chunk, read) }.forEach(onBucket)
         }
-    }
-
-    private companion object {
-        /** Five minutes: far beyond any dictation, and a bound on memory. */
-        const val MAX_SAMPLES = MODEL_SAMPLE_RATE * 60 * 5
     }
 }

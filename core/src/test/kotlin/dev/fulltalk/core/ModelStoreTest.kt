@@ -144,11 +144,11 @@ class ModelStoreTest {
 
     @Test
     fun `the shipped model pins a revision and four files`() {
-        val model = PARAKEET_TDT_V3_INT8
+        val model = PARAKEET_ULTRA_INT8
         assertEquals(4, model.files.size)
         assertTrue(model.baseUrl.matches(Regex("https://huggingface\\.co/.+/resolve/[0-9a-f]{40}")))
         assertTrue(model.files.all { it.sha256.matches(Regex("[0-9a-f]{64}")) && it.size > 0 })
-        assertEquals(670_576_784L, model.totalSize)
+        assertEquals(670_576_831L, model.totalSize)
         assertEquals("${model.baseUrl}/tokens.txt", model.url(model.files.last()))
     }
 }

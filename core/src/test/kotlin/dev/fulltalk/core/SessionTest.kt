@@ -11,65 +11,28 @@ class SessionTest {
     }
 
     @Test
-    fun `a tap toggles recording`() {
-        val session = Session()
-        assertEquals(listOf(Effect.StartCapture), session.handle(Input.Tapped))
-        assertEquals(State.Recording(Trigger.TAP), session.state)
-        assertEquals(listOf(Effect.FinishCapture), session.handle(Input.Tapped))
-        assertEquals(State.Transcribing, session.state)
-    }
-
-    @Test
     fun `a hold records while it lasts`() {
         val session = Session()
         assertEquals(listOf(Effect.StartCapture), session.handle(Input.HoldStarted))
-        assertEquals(State.Recording(Trigger.HOLD), session.state)
+        assertEquals(State.Recording, session.state)
         assertEquals(listOf(Effect.FinishCapture), session.handle(Input.HoldReleased))
         assertEquals(State.Transcribing, session.state)
     }
 
     @Test
-    fun `letting go does not stop a recording started by a tap`() {
-        val session = Session(State.Recording(Trigger.TAP))
-        assertTrue(session.handle(Input.HoldStarted).isEmpty())
-        assertTrue(session.handle(Input.HoldReleased).isEmpty())
-        assertEquals(State.Recording(Trigger.TAP), session.state)
-    }
-
-    @Test
-    fun `a tap can stop a recording started by a hold`() {
-        val session = Session(State.Recording(Trigger.HOLD))
-        assertEquals(listOf(Effect.FinishCapture), session.handle(Input.Tapped))
-    }
-
-    @Test
-    fun `cancelling discards the recording without transcribing`() {
-        for (trigger in Trigger.entries) {
-            val session = Session(State.Recording(trigger))
-            assertEquals(listOf(Effect.DiscardCapture), session.handle(Input.Cancelled))
-            assertEquals(State.Idle, session.state)
-        }
-    }
-
-    @Test
-    fun `a double tap while idle leaves no trace`() {
-        // The first tap starts a recording; the second cancels it instead of
-        // transcribing a fraction of a second.
+    fun `a tap starts nothing and says how to talk`() {
         val session = Session()
-        assertEquals(listOf(Effect.StartCapture), session.handle(Input.Tapped))
-        assertEquals(listOf(Effect.DiscardCapture), session.handle(Input.Cancelled))
+        assertEquals(listOf(Effect.Notify(Notice.HoldToTalk)), session.handle(Input.Tapped))
         assertEquals(State.Idle, session.state)
     }
 
     @Test
-    fun `cancelling does not touch a transcription in progress`() {
-        // A double tap on a running recording: the first tap already stopped
-        // it, and its text must still arrive.
-        val session = Session(State.Recording(Trigger.TAP))
-        assertEquals(listOf(Effect.FinishCapture), session.handle(Input.Tapped))
-        assertTrue(session.handle(Input.Cancelled).isEmpty())
-        assertEquals(State.Transcribing, session.state)
-        assertTrue(Session().handle(Input.Cancelled).isEmpty())
+    fun `only letting go ends a recording`() {
+        val session = Session(State.Recording)
+        for (input in listOf(Input.Tapped, Input.HoldStarted)) {
+            assertTrue(session.handle(input).isEmpty())
+            assertEquals(State.Recording, session.state)
+        }
     }
 
     @Test
@@ -83,12 +46,11 @@ class SessionTest {
     }
 
     @Test
-    fun `holds are ignored while transcribing`() {
+    fun `a hold while transcribing records nothing, and says so`() {
         val session = Session(State.Transcribing)
-        for (input in listOf(Input.HoldStarted, Input.HoldReleased)) {
-            assertTrue(session.handle(input).isEmpty())
-            assertEquals(State.Transcribing, session.state)
-        }
+        assertEquals(listOf(Effect.Notify(Notice.StillTranscribing)), session.handle(Input.HoldStarted))
+        assertTrue(session.handle(Input.HoldReleased).isEmpty())
+        assertEquals(State.Transcribing, session.state)
     }
 
     @Test
@@ -113,7 +75,7 @@ class SessionTest {
 
     @Test
     fun `nothing captured returns to idle`() {
-        for (state in listOf(State.Recording(Trigger.HOLD), State.Transcribing)) {
+        for (state in listOf(State.Recording, State.Transcribing)) {
             val session = Session(state)
             assertEquals(listOf(Effect.Notify(Notice.NothingHeard)), session.handle(Input.NothingCaptured))
             assertEquals(State.Idle, session.state)
@@ -122,7 +84,7 @@ class SessionTest {
 
     @Test
     fun `failures surface an error and reset`() {
-        val recording = Session(State.Recording(Trigger.TAP))
+        val recording = Session(State.Recording)
         assertEquals(
             listOf(Effect.Notify(Notice.Error("sem microfone"))),
             recording.handle(Input.CaptureFailed("sem microfone")),

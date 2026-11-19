@@ -165,7 +165,7 @@ private fun Screen() {
             title = "Bolinha flutuante",
             done = bubble,
             description = if (bubble) {
-                "Ativa. Toque nela para falar, ou segure enquanto fala. Dois toques abrem esta tela."
+                "Ativa. Segure para falar e solte para transcrever. Dois toques abrem esta tela."
             } else {
                 "Ative o fulltalk dev em Acessibilidade. É o que deixa a bolinha ficar sobre os outros apps " +
                     "e colar o texto no campo em foco. Nada da tela é lido ou guardado."

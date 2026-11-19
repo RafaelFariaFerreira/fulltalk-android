@@ -15,22 +15,16 @@ class Session(state: State = State.Idle) {
     fun handle(input: Input): List<Effect> {
         val current = state
         val (next, effects) = when {
-            current is State.Idle && input is Input.Tapped ->
-                State.Recording(Trigger.TAP) to listOf(Effect.StartCapture)
-
+            // Push to talk: the microphone is open exactly while the bubble is held.
             current is State.Idle && input is Input.HoldStarted ->
-                State.Recording(Trigger.HOLD) to listOf(Effect.StartCapture)
+                State.Recording to listOf(Effect.StartCapture)
 
-            // A tap always stops; letting go only stops what a hold started.
-            current is State.Recording && input is Input.Tapped ->
+            current is State.Recording && input is Input.HoldReleased ->
                 State.Transcribing to listOf(Effect.FinishCapture)
 
-            current is State.Recording && current.trigger == Trigger.HOLD && input is Input.HoldReleased ->
-                State.Transcribing to listOf(Effect.FinishCapture)
-
-            // Nothing to transcribe and nothing to say: it never happened.
-            current is State.Recording && input is Input.Cancelled ->
-                State.Idle to listOf(Effect.DiscardCapture)
+            // A tap starts nothing: a recording nobody is holding could go on forever.
+            current is State.Idle && input is Input.Tapped ->
+                State.Idle to listOf(Effect.Notify(Notice.HoldToTalk))
 
             current is State.Recording && input is Input.CaptureFailed ->
                 State.Idle to listOf(Effect.Notify(Notice.Error(input.reason)))
@@ -38,6 +32,10 @@ class Session(state: State = State.Idle) {
             // The bubble shows an X while it transcribes: a tap gives up on the text.
             current is State.Transcribing && input is Input.Tapped ->
                 State.Idle to listOf(Effect.DiscardTranscription)
+
+            // The speaker must not talk to a bubble that is not listening yet.
+            current is State.Transcribing && input is Input.HoldStarted ->
+                State.Transcribing to listOf(Effect.Notify(Notice.StillTranscribing))
 
             current is State.Transcribing && input is Input.TranscriptionFailed ->
                 State.Idle to listOf(Effect.Notify(Notice.Error(input.reason)))
@@ -50,7 +48,7 @@ class Session(state: State = State.Idle) {
                 State.Idle to listOf(if (clean.isEmpty()) Effect.Notify(Notice.NothingHeard) else Effect.Deliver(clean))
             }
 
-            // Everything else is a no-op (holds while busy, stray releases, late results).
+            // Everything else is a no-op (stray releases, late results).
             else -> current to emptyList()
         }
         state = next
@@ -58,18 +56,13 @@ class Session(state: State = State.Idle) {
     }
 }
 
-/** What started the current recording, which decides what may stop it. */
-enum class Trigger {
-    /** Tap to start, tap again to stop. */
-    TAP,
-
-    /** Recording lasts while the bubble is held. */
-    HOLD,
-}
-
 sealed interface State {
     data object Idle : State
-    data class Recording(val trigger: Trigger) : State
+
+    /** The bubble is held and the microphone is open. */
+    data object Recording : State
+
+    /** The bubble was let go; the last of what was said is still with the model. */
     data object Transcribing : State
 }
 
@@ -77,9 +70,6 @@ sealed interface Input {
     data object Tapped : Input
     data object HoldStarted : Input
     data object HoldReleased : Input
-
-    /** Throw away the recording in progress (its tap was the first half of a double tap). */
-    data object Cancelled : Input
 
     /** The microphone could not be opened or failed mid-recording. */
     data class CaptureFailed(val reason: String) : Input
@@ -92,17 +82,20 @@ sealed interface Input {
 
 sealed interface Notice {
     data object NothingHeard : Notice
+
+    /** A tap does not record: the bubble has to be held. */
+    data object HoldToTalk : Notice
+
+    /** A new hold came before the text of the last one: it was not recorded. */
+    data object StillTranscribing : Notice
     data class Error(val reason: String) : Notice
 }
 
 sealed interface Effect {
     data object StartCapture : Effect
 
-    /** Stop the microphone and transcribe what was captured. */
+    /** Stop the microphone and wait for the text of what was said. */
     data object FinishCapture : Effect
-
-    /** Stop the microphone and drop what was captured. */
-    data object DiscardCapture : Effect
 
     /** Give up on the transcription in progress: its result must never be delivered. */
     data object DiscardTranscription : Effect
